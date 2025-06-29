@@ -7,6 +7,8 @@ and incrise its value for each "Time Exceeded" message (this means for each rout
 
 // Variables
 
+#include <stdio.h>
+
 int TTL;
 
 struct ip_addresses
@@ -18,9 +20,11 @@ struct ip_addresses
 // In this function we are going to get a source IP address of user PC and destination IP address user can choose
 
 struct ip_addresses get_IP_Addresses() {
-    
+
 }
 
 int main() {
-    
+    printf("Choose destination IP address.");
+
+return 0;
 }
