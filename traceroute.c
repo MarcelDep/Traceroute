@@ -10,31 +10,50 @@ and incrise its value for each "Time Exceeded" message (this means for each rout
 #include <stdlib.h>
 
 // Variables
-int TTL;
+int TTL = 1;
 
-struct ip_addresses
-{
-    char src_ip[15];
-    char dst_ip[15];
+struct ip_addresses {
+    char src_ip[16];
+    char dst_ip[16];
 };
 
-int main() {
+struct ip_addresses getIpAddresses() {
+    // Choosing destination IP address
     int n1, n2, n3, n4;
-    struct ip_addresses ip_a;
-    char * pointerToDstIp = ip_a.dst_ip;
+    // Variables for ip addresses 
+    char hostSrcIp[16];
+    char choosedDstIp[16];
+
+    struct ip_addresses ip_a = { 0 };
+
+    char * pointerToDstIp = choosedDstIp;
     printf("Choose destination IP address.\n");
+    // NOTE: scanf nie sprawdza długości bufora, do którego pisze - giga niebezpieczne! (ta funkcja zakłada, że ma odpowiednio dużo pamięci i robi co chce)
+    // NOTE: użyj read_line z biblioteki unixowejw
     scanf("%s", pointerToDstIp);
-    int properFormat = sscanf(ip_a.dst_ip, "%d.%d.%d.%d", &n1, &n2, &n3, &n4);
+    printf("%s", choosedDstIp);
+    // Ensureing proper IP address format 
+    // TODO: zamiast %d, które oczekuje "dowolnej liczby" możesz użyć format specifier'a, który oczekuje explicite 8 bitowej liczby bez znaku [0, 255]
+    int properFormat = sscanf(choosedDstIp, "%d.%d.%d.%d", &n1, &n2, &n3, &n4);
     if (properFormat != 4) {
         printf("You've used wrong IP address format. Proper format is [0-225].[0-225].[0-225].[0-225]\n");
         exit(EXIT_FAILURE);
-        }
-        if ((n1 < 0 || n1 > 255) || (n2 < 0 || n2 > 255) || (n3 < 0 || n3 > 255) || (n4 < 0 || n4 > 255)) {
+    }
+    if ((n1 < 0 || n1 > 255) || (n2 < 0 || n2 > 255) || (n3 < 0 || n3 > 255) || (n4 < 0 || n4 > 255)) {
         printf("Each octet has to have value between 0 and 255.\n");
         exit(EXIT_FAILURE);
-        }
-        else {
-        printf("Gitówa\n");
     }
-    return 0;
+    // If user have given proper destination IP address, then program will retvie their source IP address
+    else {
+        
+    }
+    // struct ip_addresses obtainedIpAddresses = {.src_ip = ip_a.hostSrcIp,
+    //                                            .dst_ip = ip_a.choosedDstIp};
+    return obtainedIpAddresses;
+}
+
+int main() {
+    struct ip_addresses ip;
+    ip = getIpAddresses();
+    printf("%s %s", ip.src_ip, ip.dst_ip);
 }
