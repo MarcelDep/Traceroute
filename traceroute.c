@@ -17,16 +17,15 @@ int TTL = 1;
 char dstIp4[16];
 struct sockaddr_in dstadd;
 
-char * getIpAddresses() {
+unsigned int getIpAddresses() {
     // Choosing destination IP address
     int n1, n2, n3, n4;
-    char * pointerToSrcIp;
     char * pointerToDstIp = dstIp4;
     printf("Choose destination IP address.\n");
     // NOTE: scanf nie sprawdza długości bufora, do którego pisze - giga niebezpieczne! (ta funkcja zakłada, że ma odpowiednio dużo pamięci i robi co chce)
     // NOTE: użyj read_line z biblioteki unixowej
     scanf("%s", pointerToDstIp);
-    printf("%s", dstIp4);
+    printf("%s\n", dstIp4);
     // Ensureing proper IP address format 
     int properFormat = sscanf(dstIp4, "%d.%d.%d.%d", &n1, &n2, &n3, &n4);
     if (properFormat != 4) {
@@ -38,11 +37,12 @@ char * getIpAddresses() {
         exit(EXIT_FAILURE);
     }
     // Converting inputted IP address from char to decimal value
-    inet_pton(AF_INET, dstIp4, &(dstadd.sin_addr));
-    printf("%ld", dstadd.sin_addr);
-    return dstIp4;
+    inet_pton(AF_INET, dstIp4, &(dstadd.sin_addr.s_addr));
+    return dstadd.sin_addr.s_addr;
 }
 
 int main() {
-
+    unsigned int dstIPAdd = getIpAddresses();
+    printf("%u\n", dstIPAdd);
+    return 0;
 }
