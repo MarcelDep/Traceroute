@@ -11,13 +11,16 @@ and incrise its value for each "Time Exceeded" message (this means for each rout
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/types.h>
+#include <netdb.h>
 
 // Variables
 int TTL = 1;
 char dstIp4[16];
 struct sockaddr_in dstadd;
 
-unsigned int getIpAddresses() {
+// Function to retrive destination IPv4 address user can choose 
+const char * getIpAddresses() {
     // Choosing destination IP address
     int n1, n2, n3, n4;
     char * pointerToDstIp = dstIp4;
@@ -25,7 +28,6 @@ unsigned int getIpAddresses() {
     // NOTE: scanf nie sprawdza długości bufora, do którego pisze - giga niebezpieczne! (ta funkcja zakłada, że ma odpowiednio dużo pamięci i robi co chce)
     // NOTE: użyj read_line z biblioteki unixowej
     scanf("%s", pointerToDstIp);
-    printf("%s\n", dstIp4);
     // Ensureing proper IP address format 
     int properFormat = sscanf(dstIp4, "%d.%d.%d.%d", &n1, &n2, &n3, &n4);
     if (properFormat != 4) {
@@ -36,13 +38,16 @@ unsigned int getIpAddresses() {
         printf("Each octet has to have value between 0 and 255.\n");
         exit(EXIT_FAILURE);
     }
-    // Converting inputted IP address from char to decimal value
-    inet_pton(AF_INET, dstIp4, &(dstadd.sin_addr.s_addr));
-    return dstadd.sin_addr.s_addr;
+    return dstIp4;
+}
+
+// Function to send ICMP Echo messages 
+int sendEchoMess() { 
 }
 
 int main() {
-    unsigned int dstIPAdd = getIpAddresses();
-    printf("%u\n", dstIPAdd);
+    const char * dstIPAdd = getIpAddresses();
+    printf("%s\n", dstIPAdd);
+
     return 0;
 }
