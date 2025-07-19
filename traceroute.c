@@ -14,9 +14,12 @@ and incrise its value for each "Time Exceeded" message (this means for each rout
 #include <sys/types.h>
 #include <netdb.h>
 
+#include <netinet/ip.h>
+
 // Variables
 int TTL = 1;
 char dstIp4[16];
+struct sockaddr pointerToDstAddr;
 struct sockaddr_in dstadd;
 
 // Function to retrive destination IPv4 address user can choose 
@@ -46,6 +49,8 @@ int sendEchoMess() {
 }
 
 int main() {
+    // Creating ICMP RAW socket
+
     const char * dstIPAdd = getIpAddresses();
     printf("%s\n", dstIPAdd);
 
