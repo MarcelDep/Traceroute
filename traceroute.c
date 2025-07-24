@@ -22,6 +22,7 @@ static int TTL = 1;
 static char dstIp4[16];
 static struct addrinfo hints = { 0 };
 static struct addrinfo *res;
+static struct in_addr dstIpAddr;
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
@@ -49,19 +50,24 @@ const char * getIpAddresses() {
         exit(EXIT_FAILURE);
     }
     return dstIp4;
+    // Dodaj konwertację char * na uint32_t za pomocą komendy inet_pton
 }
 
 // Function to send ICMP Echo messages 
 int sendEchoMess() { 
-    struct sockaddr_in dstadd;
+    struct sockaddr_in dstSock;
+    int raw_socket;
     // Filling structs with proper data
-    dstadd.;
-    hints.ai_family = AF_UNSPEC;
+    // Dodaj structa in_addr do którego włozysz adres docelowy z getIpAddress
+    dstSock.sin_family = AF_INET;
+    dstSock.sin_port = 7;
+    dstSock.sin_addr = &
+    hints.ai_family = AF_INET;
     hints.ai_socktype = 0;
     hints.ai_flags = AI_PASSIVE;
-    hints.ai_addr = &dstadd;
+    hints.ai_addr = &dstSock;
     // Create a RAW socket
-    int socket();
+    raw_socket = socket(AF_INET, SOCK_RAW, );
 }
 
 int main() {
