@@ -3,6 +3,7 @@
         "inet.h": "c",
         "types.h": "c",
         "in.h": "c",
-        "ip.h": "c"
+        "ip.h": "c",
+        "netdb.h": "c"
     }
 }
