@@ -47,26 +47,26 @@ const char * destination;
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
 // Function to retrieve destination IPv4 address user can choose 
-const char * getIpAddresses() {
-    // Choosing destination IP address
-    int n1, n2, n3, n4;
-    char * pointerToDstIp = dstIp4;
-    printf("Choose destination IP address.\n");
-    // NOTE: scanf nie sprawdza długości bufora, do którego pisze - giga niebezpieczne! (ta funkcja zakłada, że ma odpowiednio dużo pamięci i robi co chce)
-    // NOTE: użyj read_line z biblioteki unixowej
-    scanf("%s", pointerToDstIp);
-    // Ensureing proper IP address format 
-    int properFormat = sscanf(dstIp4, "%d.%d.%d.%d", &n1, &n2, &n3, &n4);
-    if (properFormat != 4) {
-        printf("You've used wrong IP address format. Proper format is [0-225].[0-225].[0-225].[0-225]\n"); 
-        exit(EXIT_FAILURE);
-    }
-    if ((n1 < 0 || n1 > 255) || (n2 < 0 || n2 > 255) || (n3 < 0 || n3 > 255) || (n4 < 0 || n4 > 255)) {
-        printf("Each octet has to have value between 0 and 255.\n");
-        exit(EXIT_FAILURE);
-    }
-    return dstIp4;
-}
+// const char * getIpAddresses() {
+//     // Choosing destination IP address
+//     int n1, n2, n3, n4;
+//     char * pointerToDstIp = dstIp4;
+//     printf("Choose destination IP address.\n");
+//     // NOTE: scanf nie sprawdza długości bufora, do którego pisze - giga niebezpieczne! (ta funkcja zakłada, że ma odpowiednio dużo pamięci i robi co chce)
+//     // NOTE: użyj read_line z biblioteki unixowej
+//     scanf("%s", pointerToDstIp);
+//     // Ensureing proper IP address format 
+//     int properFormat = sscanf(dstIp4, "%d.%d.%d.%d", &n1, &n2, &n3, &n4);
+//     if (properFormat != 4) {
+//         printf("You've used wrong IP address format. Proper format is [0-225].[0-225].[0-225].[0-225]\n"); 
+//         exit(EXIT_FAILURE);
+//     }
+//     if ((n1 < 0 || n1 > 255) || (n2 < 0 || n2 > 255) || (n3 < 0 || n3 > 255) || (n4 < 0 || n4 > 255)) {
+//         printf("Each octet has to have value between 0 and 255.\n");
+//         exit(EXIT_FAILURE);
+//     }
+//     return dstIp4;
+// }
 
 // Function to send ICMP Echo messages 
 int sendEchoMess(const char * hostname) { 
@@ -85,11 +85,26 @@ int sendEchoMess(const char * hostname) {
     // Step 2. Resolve the hostname to an address if needed (DNS)
     int status = getaddrinfo(hostname, NULL, &hint, &result);
     if (status != 0) {
-        printf("An error has occoured: ", "%d\n", status);
+        printf("An error has occoured: %d\n", status);
         return EXIT_FAILURE;
     }
 
+    struct addrinfo *tmp = result;
+    void *addr;
+    char address_string[INET6_ADDRSTRLEN];
 
+    if (tmp->ai_family == AF_INET) {
+        addr = &((struct sockaddr_in*)tmp->ai_addr)->sin_addr;
+    }
+
+    if (tmp->ai_family == AF_INET) {
+        addr = &((struct sockaddr_in6*)tmp->ai_addr)->sin6_addr;
+    }
+
+    inet_ntop(tmp->ai_family, addr, address_string, sizeof(address_string));
+
+    printf("Address: %s\n", address_string);
+    
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
     return 0;
@@ -100,7 +115,6 @@ int main(int agrc, char *argv[]) {
     // printf("%s\n", dstIPAdd);
     const char * hostname = argv[1];
     sendEchoMess(hostname);
-    
 
     return 0;
 }
