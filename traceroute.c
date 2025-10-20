@@ -86,7 +86,7 @@ int sendEchoMess(const char * hostname) {
     int status = getaddrinfo(hostname, NULL, &hint, &result);
     if (status != 0) {
         printf("An error has occoured: ", "%d\n", status);
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
 
