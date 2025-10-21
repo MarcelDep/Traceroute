@@ -24,6 +24,7 @@ To properly send ICMP packets that are crucial for traceroute implementation I h
 I found these steps in the following link: https://github.com/janwilmans/explain_icmp_ping (in README.md file)
 */
 
+#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -37,39 +38,23 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 
 // Variables
 static int TTL = 1;
-static char dstIp4[16];
 static struct addrinfo hints = { 0 };
 static struct addrinfo *res;
-const char * destination;
+struct icmppkt {
+    uint8_t type;
+    uint8_t code;
+    u_int16_t checksum;
+    u_int32_t data;
+};
+struct pingpkt{
 
+};
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
-// Function to retrieve destination IPv4 address user can choose 
-// const char * getIpAddresses() {
-//     // Choosing destination IP address
-//     int n1, n2, n3, n4;
-//     char * pointerToDstIp = dstIp4;
-//     printf("Choose destination IP address.\n");
-//     // NOTE: scanf nie sprawdza długości bufora, do którego pisze - giga niebezpieczne! (ta funkcja zakłada, że ma odpowiednio dużo pamięci i robi co chce)
-//     // NOTE: użyj read_line z biblioteki unixowej
-//     scanf("%s", pointerToDstIp);
-//     // Ensureing proper IP address format 
-//     int properFormat = sscanf(dstIp4, "%d.%d.%d.%d", &n1, &n2, &n3, &n4);
-//     if (properFormat != 4) {
-//         printf("You've used wrong IP address format. Proper format is [0-225].[0-225].[0-225].[0-225]\n"); 
-//         exit(EXIT_FAILURE);
-//     }
-//     if ((n1 < 0 || n1 > 255) || (n2 < 0 || n2 > 255) || (n3 < 0 || n3 > 255) || (n4 < 0 || n4 > 255)) {
-//         printf("Each octet has to have value between 0 and 255.\n");
-//         exit(EXIT_FAILURE);
-//     }
-//     return dstIp4;
-// }
-
 // Function to send ICMP Echo messages 
-int sendEchoMess(const char * hostname) { 
+void sendEchoMess(const char * hostname) { 
     // Destination IP address will be resolved with getaddrinfo() function
     struct addrinfo hint; 
     struct addrinfo *result;
@@ -103,11 +88,17 @@ int sendEchoMess(const char * hostname) {
 
     inet_ntop(tmp->ai_family, addr, address_string, sizeof(address_string));
 
-    printf("Address: %s\n", address_string);
+    // If DNS reseolved hostname into an IP address then, we have to write it as a dst IP address in our struct
+    if (address_string != NULL) {
+        hint.ai_addr = address_string;
+    }
+
+    // Step 3. Creatign an ICMP packet of type 8
     
+
+
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
-    return 0;
 }
 
 int main(int agrc, char *argv[]) {
