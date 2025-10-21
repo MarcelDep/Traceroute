@@ -6,7 +6,6 @@
                 "${workspaceFolder}/**"
             ],
             "defines": [],
-<<<<<<< HEAD
             "compilerPath": "/usr/bin/gcc",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "linux-gcc-x64"
@@ -14,13 +13,3 @@
     ],
     "version": 4
 }
-=======
-            "cStandard": "gnu11",
-            "cppStandard": "gnu++17",
-            "intelliSenseMode": "linux-gcc-x64",
-            "compilerPath": "/usr/bin/gcc"
-        }
-    ],
-    "version": 4
-}
->>>>>>> cf85765d2127e4aefd8a7d227c60e219b1c35300
