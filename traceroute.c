@@ -38,12 +38,16 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
 #define IP_ADDRESS_SIZE 32
+#define SIXTEEN_BITES 16
+#define WHOLE_IP_HDR_TO_CALC_CHECKSUM 128
 
 // Variables
 static int TTL = 1;
 static struct addrinfo hints = { 0 };
 static struct addrinfo *res;
-int * binArray[IP_ADDRESS_SIZE] = { 0 }; 
+int binArray[IP_ADDRESS_SIZE] = { 0 }; 
+int IPHeaderBinVersion[WHOLE_IP_HDR_TO_CALC_CHECKSUM];
+int currentBit;
 struct IpHeader {
     unsigned int version : 4;
     unsigned int IHL : 4;
@@ -65,26 +69,36 @@ struct IpHeader {
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
 // Function to convert decimal numbers into their binary representation
-void decimal_to_binary(number) {
-    int i, n;
+void decimal_to_binary(number, size) {
+    int i, n = number;
     memset(binArray, 0, IP_ADDRESS_SIZE); // Before we calculate binary representation, we have to fill whole array with 0's
     for (i = 0; n > 0; i++) {
         binArray[i] = n % 2;
         n = n / 2;
+        i++;
+    }
+    for (i = size; i >= 0; i--) {
+        IPHeaderBinVersion[currentBit] = binArray[i];
+        currentBit++;
     }
 }
 
 // Function to calculate checksum
-uint16_t calculate_checksum(ipHdr) {
-    /* 
-    1. Change all numbers into binary representation
-    2. COnnect them into 16 bits fileds
-    3. Create a table with 10 rows of 16 bits columns 
-    4. Sum bits in columns 
-    5. Cut additional bits, and add them at the start 
-    6. Revert 0 to 1 and 1 to 0 
-    7. Put the resault intp Header Ckecksum field in struct 
-    */
+uint16_t calculate_checksum(ipHdr) { 
+    // 1. Change all numbers into binary representation
+    decimal_to_binary(ipHdr.version, 4);
+    // 2. COnnect them into 16 bits fileds
+
+    // 3. Create a table with 10 rows of 16 bits columns 
+
+    // 4. Sum bits in columns 
+
+    // 5. Cut additional bits, and add them at the start 
+
+    // 6. Revert 0 to 1 and 1 to 0 
+
+    // 7. Put the resault intp Header Ckecksum field in struct 
+
    return(0);
 }
 
@@ -138,8 +152,9 @@ void send_echo_mess(const char * hostname) {
 
     icmppkt.type = 0; // Echo reply
     icmppkt.code = 0; // Code for echo replies 
-    icmppkt.checksum = 0;
-
+    // Before setting checksum array value we have to calcuate its value
+    calculate_checksum(ipHdr);
+    icmppkt.checksum = checkSumArr[SIXTEEN_BITES]; // Calculated checksum
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
 }
