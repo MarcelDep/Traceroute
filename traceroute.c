@@ -24,6 +24,7 @@ To properly send ICMP packets that are crucial for traceroute implementation I h
 I found these steps in the following link: https://github.com/janwilmans/explain_icmp_ping (in README.md file)
 */
 
+#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -35,41 +36,60 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 #include <netinet/ip.h>
 #include <unistd.h>
 
+#define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
+#define IP_ADDRESS_SIZE 32
+
 // Variables
 static int TTL = 1;
-static char dstIp4[16];
 static struct addrinfo hints = { 0 };
 static struct addrinfo *res;
-const char * destination;
+int * binArray[IP_ADDRESS_SIZE] = { 0 }; 
+struct IpHeader {
+    unsigned int version : 4;
+    unsigned int IHL : 4;
+    uint8_t TOS;
+    uint16_t TotalLenght;
+    uint16_t Identification;
+    unsigned int Flags : 3;
+    unsigned int FragmentOffset : 13; 
+    uint8_t TTL;
+    uint8_t Protocol;
+    uint16_t HeaderChecksum;
+    uint32_t SourceAddress;
+    uint32_t DestinationAddress;
+    char options[MAX_DATA_SIZE_IN_IP_HEADER];
+} ipHdr;
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
-// Function to retrieve destination IPv4 address user can choose 
-// const char * getIpAddresses() {
-//     // Choosing destination IP address
-//     int n1, n2, n3, n4;
-//     char * pointerToDstIp = dstIp4;
-//     printf("Choose destination IP address.\n");
-//     // NOTE: scanf nie sprawdza długości bufora, do którego pisze - giga niebezpieczne! (ta funkcja zakłada, że ma odpowiednio dużo pamięci i robi co chce)
-//     // NOTE: użyj read_line z biblioteki unixowej
-//     scanf("%s", pointerToDstIp);
-//     // Ensureing proper IP address format 
-//     int properFormat = sscanf(dstIp4, "%d.%d.%d.%d", &n1, &n2, &n3, &n4);
-//     if (properFormat != 4) {
-//         printf("You've used wrong IP address format. Proper format is [0-225].[0-225].[0-225].[0-225]\n"); 
-//         exit(EXIT_FAILURE);
-//     }
-//     if ((n1 < 0 || n1 > 255) || (n2 < 0 || n2 > 255) || (n3 < 0 || n3 > 255) || (n4 < 0 || n4 > 255)) {
-//         printf("Each octet has to have value between 0 and 255.\n");
-//         exit(EXIT_FAILURE);
-//     }
-//     return dstIp4;
-// }
+// Function to convert decimal numbers into their binary representation
+void decimal_to_binary(number) {
+    int i, n;
+    memset(binArray, 0, IP_ADDRESS_SIZE); // Before we calculate binary representation, we have to fill whole array with 0's
+    for (i = 0; n > 0; i++) {
+        binArray[i] = n % 2;
+        n = n / 2;
+    }
+}
+
+// Function to calculate checksum
+uint16_t calculate_checksum(ipHdr) {
+    /* 
+    1. Change all numbers into binary representation
+    2. COnnect them into 16 bits fileds
+    3. Create a table with 10 rows of 16 bits columns 
+    4. Sum bits in columns 
+    5. Cut additional bits, and add them at the start 
+    6. Revert 0 to 1 and 1 to 0 
+    7. Put the resault intp Header Ckecksum field in struct 
+    */
+   return(0);
+}
 
 // Function to send ICMP Echo messages 
-int sendEchoMess(const char * hostname) { 
+void send_echo_mess(const char * hostname) { 
     // Destination IP address will be resolved with getaddrinfo() function
     struct addrinfo hint; 
     struct addrinfo *result;
@@ -103,11 +123,25 @@ int sendEchoMess(const char * hostname) {
 
     inet_ntop(tmp->ai_family, addr, address_string, sizeof(address_string));
 
-    printf("Address: %s\n", address_string);
-    
+    // If DNS reseolved hostname into an IP address then, we have to write it as a dst IP address in our struct
+    if (address_string != NULL) {
+        hint.ai_addr = address_string;
+    }
+
+    // Step 3. Creatign an ICMP packet of type 8
+    struct icmppkt {
+    uint8_t type;
+    uint8_t code;
+    u_int16_t checksum;
+    u_int32_t data;
+    } icmppkt;
+
+    icmppkt.type = 0; // Echo reply
+    icmppkt.code = 0; // Code for echo replies 
+    icmppkt.checksum = 0;
+
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
-    return 0;
 }
 
 int main(int agrc, char *argv[]) {
