@@ -38,12 +38,13 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
 #define IP_ADDRESS_SIZE 32
+#define WHOLE_DATA_IN_IP_PACKET 160
 
 // Variables
 static int TTL = 1;
 static struct addrinfo hints = { 0 };
 static struct addrinfo *res;
-int * binArray[IP_ADDRESS_SIZE] = { 0 }; 
+int binArray[IP_ADDRESS_SIZE] = { 0 }; 
 struct IpHeader {
     unsigned int version : 4;
     unsigned int IHL : 4;
@@ -59,31 +60,45 @@ struct IpHeader {
     uint32_t DestinationAddress;
     char options[MAX_DATA_SIZE_IN_IP_HEADER];
 } ipHdr;
+int binIPHeader[WHOLE_DATA_IN_IP_PACKET];
+int currentBit = 0;
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
 // Function to convert decimal numbers into their binary representation
-void decimal_to_binary(number) {
-    int i, n;
+void decimal_to_binary(int number, int size) {
+    int i, n = number;
     memset(binArray, 0, IP_ADDRESS_SIZE); // Before we calculate binary representation, we have to fill whole array with 0's
     for (i = 0; n > 0; i++) {
         binArray[i] = n % 2;
         n = n / 2;
     }
+    for (int j = i - 1; j >= 0; j--) {
+        binIPHeader[currentBit] = binArray[j];
+        currentBit++;
+    }
+}
+
+void sum_bits_in_checksum_calculation() {
+    // We sum bits in rows, and passing values through -  you sum bits no, 15, 15 + 16, ... 15 + 7x16
+    for (int i = 160; i < 1; i--) {
+        for (int  j = 0; i > 16; i++) {
+            
+        }
+    }
+    // Convert sum into binary representation, calculate its lenght, and then add value to a row that it represents 
 }
 
 // Function to calculate checksum
-uint16_t calculate_checksum(ipHdr) {
+uint16_t calculate_checksum(int ipHdr) {
     /* 
     1. Change all numbers into binary representation
-    2. COnnect them into 16 bits fileds
-    3. Create a table with 10 rows of 16 bits columns 
-    4. Sum bits in columns 
-    5. Cut additional bits, and add them at the start 
-    6. Revert 0 to 1 and 1 to 0 
-    7. Put the resault intp Header Ckecksum field in struct 
+    2. Add bits separeted by 16 bits to create one array of 16 bits
+    3. Cut additional bits, and add them at the start 
+    4. Revert 0 to 1 and 1 to 0 
+    5. Put the resault intp Header Ckecksum field in struct 
     */
    return(0);
 }
@@ -106,7 +121,7 @@ void send_echo_mess(const char * hostname) {
     int status = getaddrinfo(hostname, NULL, &hint, &result);
     if (status != 0) {
         printf("An error has occoured: %d\n", status);
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
 
     struct addrinfo *tmp = result;
@@ -148,7 +163,7 @@ int main(int agrc, char *argv[]) {
     // const char * dstIPAdd = getIpAddresses();
     // printf("%s\n", dstIPAdd);
     const char * hostname = argv[1];
-    sendEchoMess(hostname);
+    send_echo_mess(hostname);
 
     return 0;
 }
