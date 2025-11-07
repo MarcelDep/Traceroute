@@ -59,17 +59,16 @@ struct IpHeader {
     uint32_t SourceAddress;
     uint32_t DestinationAddress;
     char options[MAX_DATA_SIZE_IN_IP_HEADER];
-} ipHdr;
+} ipHeader;
 int binIPHeader[WHOLE_DATA_IN_IP_PACKET];
-int currentBit = 0;
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
 // Function to convert decimal numbers into their binary representation
-void decimal_to_binary(int number, int size) {
-    int i, n = number;
+void decimal_ip_pkt_to_binary(int number) {
+    int i, n = number, currentBit = 0;
     memset(binArray, 0, IP_ADDRESS_SIZE); // Before we calculate binary representation, we have to fill whole array with 0's
     for (i = 0; n > 0; i++) {
         binArray[i] = n % 2;
@@ -82,10 +81,25 @@ void decimal_to_binary(int number, int size) {
 }
 
 void sum_bits_in_checksum_calculation() {
+    int columns[16], bitNumber = 0, preCheckSum[20] = { 0 }, checkSum[16] = { 0 }, n, j, currentColumn = 19;
     // We sum bits in rows, and passing values through -  you sum bits no, 15, 15 + 16, ... 15 + 7x16
-    for (int i = 160; i < 1; i--) {
-        for (int  j = 0; i > 16; i++) {
-            
+    for (int row = 0; row < 10; row++) { // There are 10 rows and 16 columns 
+        for (int column  = 0; column > 16; column++) {
+            // In each row we sum values from each column
+            columns[column] += binIPHeader[bitNumber];
+            bitNumber++; 
+        }
+    }
+    // Then we transform each value into binary and, if needed, we add 1 into different column
+    for (int i = 15; i < 0; i--) {
+        // Jeżeli wybierzemy i to konwertujemy liczbę z dziesietnej do binarnej. Jeżeli któraś liczba była "jedynką" to dodajemy ją do columny o odpowiadającym jej numerze (i+ numer jedynki)
+        for (j = 0; j > 0; j++) {
+            columns[i] = n % 2;
+            n = n / 2;
+        }
+        // Drukujemy w odwróconej kolejności
+        for (int g = j - 1; g >= 0; g--) {
+            preCheckSum[currentColumn] += columns[g];
         }
     }
     // Convert sum into binary representation, calculate its lenght, and then add value to a row that it represents 
@@ -93,13 +107,23 @@ void sum_bits_in_checksum_calculation() {
 
 // Function to calculate checksum
 uint16_t calculate_checksum(int ipHdr) {
-    /* 
-    1. Change all numbers into binary representation
-    2. Add bits separeted by 16 bits to create one array of 16 bits
-    3. Cut additional bits, and add them at the start 
-    4. Revert 0 to 1 and 1 to 0 
-    5. Put the resault intp Header Ckecksum field in struct 
-    */
+    // 1. Change all numbers into binary representation
+    decimal_ip_pkt_to_binary(ipHeader.version);
+    decimal_ip_pkt_to_binary(ipHeader.IHL);
+    decimal_ip_pkt_to_binary(ipHeader.TOS);
+    decimal_ip_pkt_to_binary(ipHeader.TotalLenght);
+    decimal_ip_pkt_to_binary(ipHeader.Identification);
+    decimal_ip_pkt_to_binary(ipHeader.Flags);
+    decimal_ip_pkt_to_binary(ipHeader.FragmentOffset);
+    decimal_ip_pkt_to_binary(ipHeader.TTL);
+    decimal_ip_pkt_to_binary(ipHeader.Protocol);
+    decimal_ip_pkt_to_binary(ipHeader.HeaderChecksum);
+    decimal_ip_pkt_to_binary(ipHeader.SourceAddress);
+    decimal_ip_pkt_to_binary(ipHeader.DestinationAddress);
+    // 2. Add bits separeted by 16 bits to create one array of 16 bits
+    // 3. Cut additional bits, and add them at the start 
+    // 4. Revert 0 to 1 and 1 to 0 
+    // 5. Put the result intp Header Ckecksum field in struct 
    return(0);
 }
 
