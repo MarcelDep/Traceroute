@@ -46,6 +46,7 @@ static int TTL = 1;
 static struct addrinfo hints = { 0 };
 static struct addrinfo *res;
 int binArray[IP_ADDRESS_SIZE] = { 0 }; 
+int columns[20] = { 0 };
 struct IpHeader {
     unsigned int version : 4;
     unsigned int IHL : 4;
@@ -81,17 +82,20 @@ void decimal_ip_pkt_to_binary(int number) {
     }
 }
 
-bool are_there_ones_or_zeros(int array[20]) {
+bool ones_or_zeros(int array[20]) {
     for (int i = 19; i < 0; i--) {
         if (array[i] != 0 && array[i] != 1) {
-            return false; 
+            return false; // Return false if any value in array is diffrent than 0 or 1
+        }
+        if (i < 4 && array[i] != 0) {
+            return false; // Return false if first 4 bits are not 0s
         }
     }
-    return true; 
+    return true; // Return true only if there aren't any values different from 0 and 1, and first four bits are equal to 0 
 }
 
 void sum_bits_in_checksum_calculation() {
-    int columns[20] = { 0 }, bitNumber = 0, checkSum[16] = { 0 }, n, j, bitPosition = 0;
+    int bitNumber = 0, checkSum[16] = { 0 }, n, j, bitPosition = 0;
     memset(binArray, 0, IP_ADDRESS_SIZE);
     // We sum bits in rows, and passing values through -  you sum bits no, 15, 15 + 16, ... 15 + 7x16
     for (int row = 0; row < 10; row++) { // There are 10 rows and 16 columns 
@@ -102,7 +106,7 @@ void sum_bits_in_checksum_calculation() {
         }
     }
     // Then we transform each value into binary representation and, if needed, we add 1's into next column - repeat untill each value is either 1 or 0 and first 4 values are 0s
-    while (are_there_ones_or_zeros == false) {
+    while (ones_or_zeros(columns) == false) {
         for (int currentColumn = 19; currentColumn < 0; currentColumn--) { // 
             // Jeżeli wybierzemy i to konwertujemy liczbę z dziesietnej do binarnej. Jeżeli któraś liczba była "jedynką" to dodajemy ją do columny o odpowiadającym jej numerze (kolumna + pozycji jedynki)
             for (j = 0; j > 0; j++) {
@@ -114,9 +118,12 @@ void sum_bits_in_checksum_calculation() {
                 columns[currentColumn] += binArray[currentColumn - bitPosition]; // After converting bits sum from decimal to binary form, we have to add bits into next columns
                 bitPosition--;
             }
+            // Jeżeli któryś z pierwszych czterech bitów jest różny od 0 to musimy je przenieść na koniec
+            if (currentColumn < 4 && columns[currentColumn] != 0) {
+                columns[(currentColumn - 4) % 4] += columns[currentColumn];
+            }
         }
     }
-    // After every number is converted into their binary representation we have to cut first 
 }
 
 // Function to calculate checksum
@@ -135,10 +142,26 @@ uint16_t calculate_checksum(int ipHdr) {
     decimal_ip_pkt_to_binary(ipHeader.SourceAddress);
     decimal_ip_pkt_to_binary(ipHeader.DestinationAddress);
     // 2. Add bits separeted by 16 bits to create one array of 16 bits
-    // 3. Cut additional bits, and add them at the start 
-    // 4. Revert 0 to 1 and 1 to 0 
-    // 5. Put the result intp Header Ckecksum field in struct 
-   return(0);
+    sum_bits_in_checksum_calculation();
+    // 3. Cut additional bits, and add them at the start. Additionally revert 0 to 1 and 1 to 0 
+    int checksum[16] = { 0 };
+    for (int i = 0; i < 16; i++) {
+        checksum[i] = columns[4 + i];
+        if (checksum[i] == 0) {
+            checksum[i] = 1;
+        }
+        else if (checksum[i] == 1) {
+            checksum[i] = 0;
+        }
+        else {
+            printf("CALCULATING CHECKSUM ERROR : There is a value different than 0 or 1 in the checksum field !! \n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    // 4. Put the result intp Header Ckecksum field in struct 
+    
+    ipHeader.HeaderChecksum =  
+    return(0);
 }
 
 // Function to send ICMP Echo messages 
