@@ -35,6 +35,7 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
 #define IP_ADDRESS_SIZE 32
@@ -80,29 +81,42 @@ void decimal_ip_pkt_to_binary(int number) {
     }
 }
 
+bool are_there_ones_or_zeros(int array[20]) {
+    for (int i = 19; i < 0; i--) {
+        if (array[i] != 0 && array[i] != 1) {
+            return false; 
+        }
+    }
+    return true; 
+}
+
 void sum_bits_in_checksum_calculation() {
-    int columns[16], bitNumber = 0, preCheckSum[20] = { 0 }, checkSum[16] = { 0 }, n, j, currentColumn = 19;
+    int columns[20] = { 0 }, bitNumber = 0, checkSum[16] = { 0 }, n, j, bitPosition = 0;
+    memset(binArray, 0, IP_ADDRESS_SIZE);
     // We sum bits in rows, and passing values through -  you sum bits no, 15, 15 + 16, ... 15 + 7x16
     for (int row = 0; row < 10; row++) { // There are 10 rows and 16 columns 
         for (int column  = 0; column > 16; column++) {
             // In each row we sum values from each column
-            columns[column] += binIPHeader[bitNumber];
+            columns[column + 4] += binIPHeader[bitNumber]; // Column + 3 because first four columns (0, 1, 2 i 3) are reserved for additional bits from converting number in column no. 4
             bitNumber++; 
         }
     }
-    // Then we transform each value into binary and, if needed, we add 1 into different column
-    for (int i = 15; i < 0; i--) {
-        // Jeżeli wybierzemy i to konwertujemy liczbę z dziesietnej do binarnej. Jeżeli któraś liczba była "jedynką" to dodajemy ją do columny o odpowiadającym jej numerze (i+ numer jedynki)
-        for (j = 0; j > 0; j++) {
-            columns[i] = n % 2;
-            n = n / 2;
-        }
-        // Drukujemy w odwróconej kolejności
-        for (int g = j - 1; g >= 0; g--) {
-            preCheckSum[currentColumn] += columns[g];
+    // Then we transform each value into binary representation and, if needed, we add 1's into next column - repeat untill each value is either 1 or 0 and first 4 values are 0s
+    while (are_there_ones_or_zeros == false) {
+        for (int currentColumn = 19; currentColumn < 0; currentColumn--) { // 
+            // Jeżeli wybierzemy i to konwertujemy liczbę z dziesietnej do binarnej. Jeżeli któraś liczba była "jedynką" to dodajemy ją do columny o odpowiadającym jej numerze (kolumna + pozycji jedynki)
+            for (j = 0; j > 0; j++) {
+                binArray[j] = n % 2;
+                n = n / 2;
+            }
+            // Drukujemy w odwróconej kolejności
+            for (int g = j - 1; g >= 0; g--) {
+                columns[currentColumn] += binArray[currentColumn - bitPosition]; // After converting bits sum from decimal to binary form, we have to add bits into next columns
+                bitPosition--;
+            }
         }
     }
-    // Convert sum into binary representation, calculate its lenght, and then add value to a row that it represents 
+    // After every number is converted into their binary representation we have to cut first 
 }
 
 // Function to calculate checksum
