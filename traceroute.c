@@ -36,6 +36,7 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
 #define IP_ADDRESS_SIZE 32
@@ -126,8 +127,8 @@ void sum_bits_in_checksum_calculation() {
     }
 }
 
-// Function to calculate checksum
-uint16_t calculate_checksum(int ipHdr) {
+// Function to calculate checksum in IP
+uint16_t calculate_checksum() {
     // 1. Change all numbers into binary representation
     decimal_ip_pkt_to_binary(ipHeader.version);
     decimal_ip_pkt_to_binary(ipHeader.IHL);
@@ -158,10 +159,50 @@ uint16_t calculate_checksum(int ipHdr) {
             exit(EXIT_FAILURE);
         }
     }
+    // 4. Convert number into decimal
+    uint16_t decimalChecksum;
+    int power_of_2 = 0;
+    for (int j = 15; j <= 0; j++) {
+        decimalChecksum += checksum[j] * 2^(power_of_2);
+        power_of_2++;
+    }
     // 4. Put the result intp Header Ckecksum field in struct 
-    
-    ipHeader.HeaderChecksum =  
-    return(0);
+    ipHeader.HeaderChecksum =  decimalChecksum;
+    return(decimalChecksum);
+}
+
+// Function to calculate checksum in ICMP
+uint16_t calculate_icmp_checksum(int type, int code) {
+    // 1. Change all numbers into binary representation
+    decimal_ip_pkt_to_binary(type);
+    decimal_ip_pkt_to_binary(code);
+    // 2. Add bits separeted by 16 bits to create one array of 16 bits
+    sum_bits_in_checksum_calculation();
+    // 3. Cut additional bits, and add them at the start. Additionally revert 0 to 1 and 1 to 0 
+    int checksum[16] = { 0 };
+    for (int i = 0; i < 16; i++) {
+        checksum[i] = columns[4 + i];
+        if (checksum[i] == 0) {
+            checksum[i] = 1;
+        }
+        else if (checksum[i] == 1) {
+            checksum[i] = 0;
+        }
+        else {
+            printf("CALCULATING CHECKSUM ERROR : There is a value different than 0 or 1 in the checksum field !! \n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    // 4. Convert number into decimal
+    uint16_t decimalChecksum;
+    int power_of_2 = 0;
+    for (int j = 19; j <= 4; j++) {
+        decimalChecksum += checksum[j] * 2^(power_of_2);
+        power_of_2++;
+    }
+    // 4. Put the result intp Header Ckecksum field in struct 
+    ipHeader.HeaderChecksum =  decimalChecksum;
+    return(decimalChecksum);
 }
 
 // Function to send ICMP Echo messages 
@@ -172,13 +213,12 @@ void send_echo_mess(const char * hostname) {
     // We have to allocate proper amount of memory to our hint struct - we fill whole struct with 0's, and fill it with proper data
     memset(&hint, 0, sizeof(hint));
     hint.ai_family = AF_UNSPEC;
-    hint.ai_socktype = SOCK_STREAM;
+    hint.ai_socktype = SOCK_RAW;
+    hint.ai_protocol = IPPROTO_ICMP;
+    hints.ai_flags = AI_PASSIVE;
     // The rest of struct is 0
 
-    // Step 1. Create a RAW socket for specifying ICMP protocol
-    socket(AF_INET, SOCK_STREAM, IPPROTO_ICMP);
-
-    // Step 2. Resolve the hostname to an address if needed (DNS)
+    // Step 1. Resolve the hostname to an address if needed (DNS)
     int status = getaddrinfo(hostname, NULL, &hint, &result);
     if (status != 0) {
         printf("An error has occoured: %d\n", status);
@@ -198,10 +238,17 @@ void send_echo_mess(const char * hostname) {
     }
 
     inet_ntop(tmp->ai_family, addr, address_string, sizeof(address_string));
-
+    
     // If DNS reseolved hostname into an IP address then, we have to write it as a dst IP address in our struct
     if (address_string != NULL) {
         hint.ai_addr = address_string;
+    }
+
+    // Step 2. Create a RAW socket for specifying ICMP protocol
+    int sockfd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (sockfd == -1) {
+        printf("SOCKET ERROR !! %d\n\r", sockfd);
+        exit(EXIT_FAILURE);
     }
 
     // Step 3. Creatign an ICMP packet of type 8
@@ -214,7 +261,46 @@ void send_echo_mess(const char * hostname) {
 
     icmppkt.type = 0; // Echo reply
     icmppkt.code = 0; // Code for echo replies 
-    icmppkt.checksum = 0;
+    icmppkt.checksum = calculate_checksum(icmppkt.type, icmppkt.code);
+
+
+    // 4.  Record the start time
+    clock_t start;
+    start = clock();
+
+    // 5.  Send out the packet 
+    int connect_reply = connect(sockfd, result->ai_addr, result->ai_addrlen);
+    if (connect_reply == -1) {
+        printf("CONNECT ERROR !! %d\n\r", connect_reply);
+        exit(EXIT_FAILURE);
+    }
+
+    // 6.  Wait for a ICMP type 0 (Reply)
+    int listen_reply = listen(sockfd, 10);
+    if (listen_reply == -1) {
+        printf("LISTEN ERROR !! %d\n\r", listen_reply);
+        exit(EXIT_FAILURE);
+    }
+
+    // 7.  Record the end time
+    clock_t end;
+    end = clock();
+    
+    // 8.  Check the Id byte to make sure it is a reply to our Echo packet
+    
+
+    // 9.  If the Id byte is not a match, wait for another packet if the timeout was not reached yet
+    struct sockaddr_storage their_addr;
+    socklen_t addr_size = sizeof(their_addr);
+    int reply_fd = accept(sockfd, (struct sockaddr*)&their_addr, &addr_size);
+    if (reply_fd == -1) {
+        printf("ACCEPT ERROR !! %d\n\r", reply_fd);
+        exit(EXIT_FAILURE);
+    }
+
+    
+    // 10. Print the result
+
 
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
