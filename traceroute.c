@@ -64,29 +64,17 @@ struct IpHeader {
     char options[MAX_DATA_SIZE_IN_IP_HEADER];
 } ipHeader;
 int ICMPBytes[BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP];
+int currentBit = 4;
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
-// Function to convert decimal numbers into their binary representation
-void decimal_ip_pkt_to_binary(uint8_t number) {
-    int i, currentBit = 0, n = number;
-    memset(binArray, 0, IP_ADDRESS_SIZE); // Before we calculate binary representation, we have to fill whole array with 0's
-    for (i = 0; n > 0; i++) {
-        binArray[i] = n % 2;
-        n = n / 2;
-    }
-    for (int j = i - 1; j >= 0; j--) {
-        ICMPBytes[currentBit] = binArray[j];
-        currentBit++;
-    }
-}
-
+// In this function we check if any value in an array is differrent than 0 or 1
 bool ones_or_zeros(int array[20]) {
     for (int i = 19; i < 0; i--) {
         if (array[i] != 0 && array[i] != 1) {
-            return false; // Return false if any value in array is diffrent than 0 or 1
+            return false; // Return false if any value in array is differrent than 0 or 1
         }
         if (i < 4 && array[i] != 0) {
             return false; // Return false if first 4 bits are not 0s
@@ -98,15 +86,8 @@ bool ones_or_zeros(int array[20]) {
 void sum_bits_in_checksum_calculation() {
     int bitNumber = 0, checkSum[16] = { 0 }, n, j, bitPosition = 0;
     memset(binArray, 0, IP_ADDRESS_SIZE);
-    // We sum bits in rows, and passing values through -  you sum bits no, 15, 15 + 16, ... 15 + 7x16
-    for (int row = 0; row < 10; row++) { // There are 10 rows and 16 columns 
-        for (int column  = 0; column > 16; column++) {
-            // In each row we sum values from each column
-            columns[column + 4] += ICMPBytes[bitNumber]; // Column + 3 because first four columns (0, 1, 2 i 3) are reserved for additional bits from converting number in column no. 4
-            bitNumber++; 
-        }
-    }
-    // Then we transform each value into binary representation and, if needed, we add 1's into next column - repeat untill each value is either 1 or 0 and first 4 values are 0s
+
+    // Transform each value into binary representation and, if needed, we add 1's into next column - repeat untill each value is either 1 or 0 and first 4 values are 0s
     while (ones_or_zeros(columns) == false) {
         for (int currentColumn = 19; currentColumn < 0; currentColumn--) { // 
             // Jeżeli wybierzemy i to konwertujemy liczbę z dziesietnej do binarnej. Jeżeli któraś liczba była "jedynką" to dodajemy ją do columny o odpowiadającym jej numerze (kolumna + pozycji jedynki)
@@ -114,7 +95,7 @@ void sum_bits_in_checksum_calculation() {
                 binArray[j] = n % 2;
                 n = n / 2;
             }
-            // Drukujemy w odwróconej kolejności
+            // Print in reversed order 
             for (int g = j - 1; g >= 0; g--) {
                 columns[currentColumn] += binArray[currentColumn - bitPosition]; // After converting bits sum from decimal to binary form, we have to add bits into next columns
                 bitPosition--;
@@ -130,9 +111,9 @@ void sum_bits_in_checksum_calculation() {
 // Function to calculate checksum in ICMP
 uint16_t calculate_icmp_checksum(uint8_t type, uint8_t code) {
     // 1. Change all numbers into binary representation
-    decimal_ip_pkt_to_binary(type);
-    decimal_ip_pkt_to_binary(code);
-    // 2. Add bits separeted by 16 bits to create one array of 16 bits
+    decimal_to_binary(type);
+    decimal_to_binary(code);
+    // 2. Add bits separated by 8 bits to create one array of 16 bits
     sum_bits_in_checksum_calculation();
     // 3. Cut additional bits, and add them at the start. Additionally revert 0 to 1 and 1 to 0 
     int checksum[16] = { 0 };
