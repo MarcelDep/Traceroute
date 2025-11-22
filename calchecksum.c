@@ -146,7 +146,6 @@ int main(int agrc, char *argv[]) {
     // const char * dstIPAdd = getIpAddresses();
     // printf("%s\n", dstIPAdd);
     const char * hostname = argv[1];
-    send_echo_mess(hostname);
 
     return 0;
 }
