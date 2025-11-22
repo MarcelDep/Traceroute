@@ -24,6 +24,10 @@ To properly send ICMP packets that are crucial for traceroute implementation I h
 I found these steps in the following link: https://github.com/janwilmans/explain_icmp_ping (in README.md file)
 */
 
+// CTRL + ALT + Strzałka -> dodaj nowy kursor
+// CTRL + D -> dodaj kursor przy matchującym wzorcu
+// CTRL + R -> mądry znajdź i zamień (refactor)
+
 #define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <string.h>
@@ -63,11 +67,7 @@ struct IpHeader {
 int ICMPBytes[BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP];
 int currentBit = 0;
 
-// CTRL + ALT + Strzałka -> dodaj nowy kursor
-// CTRL + D -> dodaj kursor przy matchującym wzorcu
-// CTRL + R -> mądry znajdź i zamień (refactor)
-
-// Function to convert decimal numbers into their binary representation
+// Convert decimal numbers into their binary representation
 void decimal_to_binary(uint8_t number) {
     int i, n = number, binArray[16];
     memset(binArray, 0, sizeof(binArray)); // Before we calculate binary representation, we have to fill whole array with 0's
@@ -81,7 +81,7 @@ void decimal_to_binary(uint8_t number) {
     }
 }
 
-// Function to calculate checksum in ICMP
+// Calculate checksum in ICMP
 uint16_t calculate_icmp_checksum(uint8_t type, uint8_t code) {
     // 1. Change all numbers into binary representation
     decimal_to_binary(type);
@@ -93,11 +93,16 @@ uint16_t calculate_icmp_checksum(uint8_t type, uint8_t code) {
         decimalChecksum += ICMPBytes[j] * 2^(power_of_2);
         power_of_2++;
     }
-    // 3. Put the result intp Header Ckecksum field in struct 
+    // 3. Put the result into ICMP ckecksum field in struct 
     return(decimalChecksum);
 }
 
-// Function to send ICMP Echo messages 
+// Returns if ICMP packet has reached its destination
+bool packet_reach_destination() {
+    if 
+}
+
+// Send ICMP Echo messages 
 void send_echo_mess(const char * hostname) { 
     // Destination IP address will be resolved with getaddrinfo() function
     struct addrinfo hint; 
@@ -143,7 +148,7 @@ void send_echo_mess(const char * hostname) {
         exit(EXIT_FAILURE);
     }
 
-    // Step 3. Creatign an ICMP packet of type 8
+    // Step 3. Creating an ICMP packet of type 8
     struct icmppkt {
     uint8_t type;
     uint8_t code;
@@ -155,37 +160,29 @@ void send_echo_mess(const char * hostname) {
     icmppkt.code = 0; // Code for echo replies 
     icmppkt.checksum = calculate_icmp_checksum(icmppkt.type, icmppkt.code);
 
-    int connect_reply = connect(sockfd, result->ai_addr, result->ai_addrlen);
-    if (connect_reply == -1) {
-        printf("CONNECT ERROR !! %d\n\r", connect_reply);
-        exit(EXIT_FAILURE);
-    }
+    // 4.  Record the start time of traceroute
+    clock_t whole_time_start;
+    whole_time_start = clock();
 
-    // 6.  Wait for a ICMP type 0 (Reply)
+    // Loop that ends when package reaches its destination  
+    // 5.  Send out the packet
+    while (packet_reach_destination == false) {
+        // 5.1  Record the start time of single packet 
+        
+        // 5.2  Wait for a ICMP type 0 (Reply)
 
-
-    // 4.  Record the start time
-    clock_t start;
-    start = clock();
-
-    // 5.  Send out the packet 
-
-    // We will stop sending packages if it's received by destination address
-
-
+        // 5.3  Record the end time
+    } 
+    
     // 7.  Record the end time
-    clock_t end;
-    end = clock();
+    clock_t whole_time_end;
+    whole_time_end = clock();
     
     // 8.  Check the Id byte to make sure it is a reply to our Echo packet
-    
-
 
     // 9.  If the Id byte is not a match, wait for another packet if the timeout was not reached yet
 
-    
     // 10. Print the result
-
 
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
