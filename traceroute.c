@@ -40,7 +40,7 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
 #define IP_ADDRESS_SIZE 32
-#define WHOLE_DATA_IN_IP_PACKET 16
+#define BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP 20 // With 4 additional bytes
 
 // Variables
 static int TTL = 1;
@@ -57,28 +57,28 @@ struct IpHeader {
     unsigned int Flags : 3;
     unsigned int FragmentOffset : 13; 
     uint8_t TTL;
-    uint8_t Protocol;`
+    uint8_t Protocol;
     uint16_t HeaderChecksum;
     uint32_t SourceAddress;
     uint32_t DestinationAddress;
     char options[MAX_DATA_SIZE_IN_IP_HEADER];
 } ipHeader;
-int binIPHeader[WHOLE_DATA_IN_IP_PACKET];
+int ICMPBytes[BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP];
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
 // Function to convert decimal numbers into their binary representation
-void decimal_ip_pkt_to_binary(int number) {
-    int i, n = number, currentBit = 0;
+void decimal_ip_pkt_to_binary(uint8_t number) {
+    int i, currentBit = 0, n = number;
     memset(binArray, 0, IP_ADDRESS_SIZE); // Before we calculate binary representation, we have to fill whole array with 0's
     for (i = 0; n > 0; i++) {
         binArray[i] = n % 2;
         n = n / 2;
     }
     for (int j = i - 1; j >= 0; j--) {
-        binIPHeader[currentBit] = binArray[j];
+        ICMPBytes[currentBit] = binArray[j];
         currentBit++;
     }
 }
@@ -102,7 +102,7 @@ void sum_bits_in_checksum_calculation() {
     for (int row = 0; row < 10; row++) { // There are 10 rows and 16 columns 
         for (int column  = 0; column > 16; column++) {
             // In each row we sum values from each column
-            columns[column + 4] += binIPHeader[bitNumber]; // Column + 3 because first four columns (0, 1, 2 i 3) are reserved for additional bits from converting number in column no. 4
+            columns[column + 4] += ICMPBytes[bitNumber]; // Column + 3 because first four columns (0, 1, 2 i 3) are reserved for additional bits from converting number in column no. 4
             bitNumber++; 
         }
     }
@@ -128,7 +128,7 @@ void sum_bits_in_checksum_calculation() {
 }
 
 // Function to calculate checksum in ICMP
-uint16_t calculate_icmp_checksum(int type, int code) {
+uint16_t calculate_icmp_checksum(uint8_t type, uint8_t code) {
     // 1. Change all numbers into binary representation
     decimal_ip_pkt_to_binary(type);
     decimal_ip_pkt_to_binary(code);
@@ -217,7 +217,7 @@ void send_echo_mess(const char * hostname) {
 
     icmppkt.type = 0; // Echo reply
     icmppkt.code = 0; // Code for echo replies 
-    icmppkt.checksum = calculate_checksum(icmppkt.type, icmppkt.code);
+    icmppkt.checksum = calculate_icmp_checksum(icmppkt.type, icmppkt.code);
 
     int connect_reply = connect(sockfd, result->ai_addr, result->ai_addrlen);
     if (connect_reply == -1) {
