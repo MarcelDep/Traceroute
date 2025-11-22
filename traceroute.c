@@ -263,12 +263,6 @@ void send_echo_mess(const char * hostname) {
     icmppkt.code = 0; // Code for echo replies 
     icmppkt.checksum = calculate_checksum(icmppkt.type, icmppkt.code);
 
-
-    // 4.  Record the start time
-    clock_t start;
-    start = clock();
-
-    // 5.  Send out the packet 
     int connect_reply = connect(sockfd, result->ai_addr, result->ai_addrlen);
     if (connect_reply == -1) {
         printf("CONNECT ERROR !! %d\n\r", connect_reply);
@@ -282,14 +276,6 @@ void send_echo_mess(const char * hostname) {
         exit(EXIT_FAILURE);
     }
 
-    // 7.  Record the end time
-    clock_t end;
-    end = clock();
-    
-    // 8.  Check the Id byte to make sure it is a reply to our Echo packet
-    
-
-    // 9.  If the Id byte is not a match, wait for another packet if the timeout was not reached yet
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
     int reply_fd = accept(sockfd, (struct sockaddr*)&their_addr, &addr_size);
@@ -297,6 +283,27 @@ void send_echo_mess(const char * hostname) {
         printf("ACCEPT ERROR !! %d\n\r", reply_fd);
         exit(EXIT_FAILURE);
     }
+
+    // 4.  Record the start time
+    clock_t start;
+    start = clock();
+
+    // 5.  Send out the packet 
+
+    // We will stop sending packages if it's received by destination address
+    if (    ) {
+
+    } 
+
+    // 7.  Record the end time
+    clock_t end;
+    end = clock();
+    
+    // 8.  Check the Id byte to make sure it is a reply to our Echo packet
+    
+
+
+    // 9.  If the Id byte is not a match, wait for another packet if the timeout was not reached yet
 
     
     // 10. Print the result
