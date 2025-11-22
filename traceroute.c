@@ -40,7 +40,7 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
 #define IP_ADDRESS_SIZE 32
-#define WHOLE_DATA_IN_IP_PACKET 160
+#define WHOLE_DATA_IN_IP_PACKET 16
 
 // Variables
 static int TTL = 1;
@@ -57,7 +57,7 @@ struct IpHeader {
     unsigned int Flags : 3;
     unsigned int FragmentOffset : 13; 
     uint8_t TTL;
-    uint8_t Protocol;
+    uint8_t Protocol;`
     uint16_t HeaderChecksum;
     uint32_t SourceAddress;
     uint32_t DestinationAddress;
