@@ -39,15 +39,12 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 #include <time.h>
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
-#define IP_ADDRESS_SIZE 32
-#define BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP 20 // With 4 additional bytes
+#define BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP 20 // 4 additional bits
 
 // Variables
 static int TTL = 1;
 static struct addrinfo hints = { 0 };
-static struct addrinfo *res;
-int binArray[IP_ADDRESS_SIZE] = { 0 }; 
-int columns[20] = { 0 };
+static struct addrinfo *res; 
 struct IpHeader {
     unsigned int version : 4;
     unsigned int IHL : 4;
@@ -64,31 +61,32 @@ struct IpHeader {
     char options[MAX_DATA_SIZE_IN_IP_HEADER];
 } ipHeader;
 int ICMPBytes[BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP];
-int currentBit = 4;
+int currentBit = 0;
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
-// In this function we check if any value in an array is differrent than 0 or 1
-bool ones_or_zeros(int array[20]) {
-    for (int i = 19; i < 0; i--) {
-        if (array[i] != 0 && array[i] != 1) {
-            return false; // Return false if any value in array is differrent than 0 or 1
-        }
-        if (i < 4 && array[i] != 0) {
-            return false; // Return false if first 4 bits are not 0s
-        }
+// Function to convert decimal numbers into their binary representation
+void decimal_to_binary(uint8_t number) {
+    int i, n = number, binArray[16];
+    memset(binArray, 0, sizeof(binArray)); // Before we calculate binary representation, we have to fill whole array with 0's
+    for (i = 0; n > 0; i++) {
+        binArray[i] = n % 2;
+        n = n / 2;
     }
-    return true; // Return true only if there aren't any values different from 0 and 1, and first four bits are equal to 0 
+    for (int j = i - 1; j >= 0; j--) {
+        ICMPBytes[currentBit] = binArray[j];
+        currentBit++;
+    }
 }
 
 void sum_bits_in_checksum_calculation() {
-    int bitNumber = 0, checkSum[16] = { 0 }, n, j, bitPosition = 0;
-    memset(binArray, 0, IP_ADDRESS_SIZE);
+    int n, j, bitPosition = 0, binArray[16];
+    memset(binArray, 0, sizeof(binArray));
 
     // Transform each value into binary representation and, if needed, we add 1's into next column - repeat untill each value is either 1 or 0 and first 4 values are 0s
-    while (ones_or_zeros(columns) == false) {
+    while (ones_or_zeros(ICMPBytes) == false) {
         for (int currentColumn = 19; currentColumn < 0; currentColumn--) { // 
             // Jeżeli wybierzemy i to konwertujemy liczbę z dziesietnej do binarnej. Jeżeli któraś liczba była "jedynką" to dodajemy ją do columny o odpowiadającym jej numerze (kolumna + pozycji jedynki)
             for (j = 0; j > 0; j++) {
@@ -97,12 +95,12 @@ void sum_bits_in_checksum_calculation() {
             }
             // Print in reversed order 
             for (int g = j - 1; g >= 0; g--) {
-                columns[currentColumn] += binArray[currentColumn - bitPosition]; // After converting bits sum from decimal to binary form, we have to add bits into next columns
+                ICMPBytes[currentColumn] += binArray[currentColumn - bitPosition]; // After converting bits sum from decimal to binary form, we have to add bits into next columns
                 bitPosition--;
             }
             // Jeżeli któryś z pierwszych czterech bitów jest różny od 0 to musimy je przenieść na koniec
-            if (currentColumn < 4 && columns[currentColumn] != 0) {
-                columns[(currentColumn - 4) % 4] += columns[currentColumn];
+            if (currentColumn < 4 && ICMPBytes[currentColumn] != 0) {
+                ICMPBytes[(currentColumn - 4) % 4] += ICMPBytes[currentColumn];
             }
         }
     }
