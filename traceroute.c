@@ -39,7 +39,7 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 #include <time.h>
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
-#define BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP 20 // 4 additional bits
+#define BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP 16
 
 // Variables
 static int TTL = 1;
@@ -81,62 +81,19 @@ void decimal_to_binary(uint8_t number) {
     }
 }
 
-void sum_bits_in_checksum_calculation() {
-    int n, j, bitPosition = 0, binArray[16];
-    memset(binArray, 0, sizeof(binArray));
-
-    // Transform each value into binary representation and, if needed, we add 1's into next column - repeat untill each value is either 1 or 0 and first 4 values are 0s
-    while (ones_or_zeros(ICMPBytes) == false) {
-        for (int currentColumn = 19; currentColumn < 0; currentColumn--) { // 
-            // Jeżeli wybierzemy i to konwertujemy liczbę z dziesietnej do binarnej. Jeżeli któraś liczba była "jedynką" to dodajemy ją do columny o odpowiadającym jej numerze (kolumna + pozycji jedynki)
-            for (j = 0; j > 0; j++) {
-                binArray[j] = n % 2;
-                n = n / 2;
-            }
-            // Print in reversed order 
-            for (int g = j - 1; g >= 0; g--) {
-                ICMPBytes[currentColumn] += binArray[currentColumn - bitPosition]; // After converting bits sum from decimal to binary form, we have to add bits into next columns
-                bitPosition--;
-            }
-            // Jeżeli któryś z pierwszych czterech bitów jest różny od 0 to musimy je przenieść na koniec
-            if (currentColumn < 4 && ICMPBytes[currentColumn] != 0) {
-                ICMPBytes[(currentColumn - 4) % 4] += ICMPBytes[currentColumn];
-            }
-        }
-    }
-}
-
 // Function to calculate checksum in ICMP
 uint16_t calculate_icmp_checksum(uint8_t type, uint8_t code) {
     // 1. Change all numbers into binary representation
     decimal_to_binary(type);
     decimal_to_binary(code);
-    // 2. Add bits separated by 8 bits to create one array of 16 bits
-    sum_bits_in_checksum_calculation();
-    // 3. Cut additional bits, and add them at the start. Additionally revert 0 to 1 and 1 to 0 
-    int checksum[16] = { 0 };
-    for (int i = 0; i < 16; i++) {
-        checksum[i] = columns[4 + i];
-        if (checksum[i] == 0) {
-            checksum[i] = 1;
-        }
-        else if (checksum[i] == 1) {
-            checksum[i] = 0;
-        }
-        else {
-            printf("CALCULATING CHECKSUM ERROR : There is a value different than 0 or 1 in the checksum field !! \n");
-            exit(EXIT_FAILURE);
-        }
-    }
-    // 4. Convert number into decimal
+    // 2. Convert number into decimal
     uint16_t decimalChecksum;
     int power_of_2 = 0;
-    for (int j = 19; j <= 4; j++) {
-        decimalChecksum += checksum[j] * 2^(power_of_2);
+    for (int j = 0; j <= 15; j++) {
+        decimalChecksum += ICMPBytes[j] * 2^(power_of_2);
         power_of_2++;
     }
-    // 4. Put the result intp Header Ckecksum field in struct 
-    ipHeader.HeaderChecksum =  decimalChecksum;
+    // 3. Put the result intp Header Ckecksum field in struct 
     return(decimalChecksum);
 }
 
