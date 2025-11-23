@@ -98,8 +98,13 @@ uint16_t calculate_icmp_checksum(uint8_t type, uint8_t code) {
 }
 
 // Returns if ICMP packet has reached its destination
-bool packet_reach_destination() {
-    if 
+bool ICMP_time_exceeded() {
+    if () {
+        return false;
+    }
+    else {
+        return true;
+    }
 }
 
 // Send ICMP Echo messages 
@@ -153,36 +158,60 @@ void send_echo_mess(const char * hostname) {
     uint8_t type;
     uint8_t code;
     u_int16_t checksum;
-    u_int32_t data;
+    u_int16_t identifier;
     } icmppkt;
 
-    icmppkt.type = 0; // Echo reply
-    icmppkt.code = 0; // Code for echo replies 
-    icmppkt.checksum = calculate_icmp_checksum(icmppkt.type, icmppkt.code);
+    icmppkt.type = 8; // Echo request
+    icmppkt.code = 0; // Code for echo requests 
+    icmppkt.checksum = calculate_icmp_checksum(icmppkt.type, icmppkt.code); // Calculated ckecksum
+    icmppkt.identifier = 100; // ICMP packet identifier
+    char * sendbuff = sizeof(icmppkt); // Buffer used to send message
+    char * recvbuff = sizeof(icmppkt); // Buffer used to read message
 
     // 4.  Record the start time of traceroute
     clock_t whole_time_start;
     whole_time_start = clock();
 
-    // Loop that ends when package reaches its destination  
-    // 5.  Send out the packet
-    while (packet_reach_destination == false) {
-        // 5.1  Record the start time of single packet 
-        
-        // 5.2  Wait for a ICMP type 0 (Reply)
+    // Loop that ends when package reaches its destination
+    while (ICMP_time_exceeded() == true) {
+        // 5.  Send out the packet 
+        int failedPackets = 0;
+        ssize_t answer; 
+        int sent_packet = sendto(sockfd, sendbuff, sizeof(sendbuff), 0, hint.ai_addr, sizeof(hint.ai_addr));
+        // If you haven't succeed with sending ICMP packets report an error, else wait for an answer 
+        if (sent_packet < 0) {
+            printf("SENDING ERROR !! %d\n\r", sent_packet);
+            exit(EXIT_FAILURE);
+        } 
+        else {
+            printf("Sent %d byte packet... ", bytes_sent);
+            // 5.1  Record the start time of single packet 
+            clock_t start;
+            start = clock();
+            // 5.2  Wait (listen) for a ICMP type 0 (Reply)
+            answer = recvfrom(sockfd, recvbuff, sizeof(recvbuff), 0, hint.ai_addr, sizeof(hint.ai_addr));
+            if (answer < 0) {
+                printf("REVIVING ERROR !! %d\n\r", answer);
+                exit(EXIT_FAILURE);
+            }
+            // 5.3  Check the Id byte to make sure it is a reply to our Echo packet
+            
+            // 5.4  If the Id byte is not a match, wait for another packet if the timeout was not reached yet
 
-        // 5.3  Record the end time
+            // 5.5  Record the end time
+            clock_t end;
+            end = clock();
+
+            // 5.6 Print results
+
+        }
     } 
     
     // 7.  Record the end time
     clock_t whole_time_end;
     whole_time_end = clock();
-    
-    // 8.  Check the Id byte to make sure it is a reply to our Echo packet
 
-    // 9.  If the Id byte is not a match, wait for another packet if the timeout was not reached yet
-
-    // 10. Print the result
+    // 8. Print the result
 
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
@@ -194,5 +223,5 @@ int main(int agrc, char *argv[]) {
     const char * hostname = argv[1];
     send_echo_mess(hostname);
 
-    return 0;
+    return 0; 
 }
