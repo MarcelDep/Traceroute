@@ -24,6 +24,10 @@ To properly send ICMP packets that are crucial for traceroute implementation I h
 I found these steps in the following link: https://github.com/janwilmans/explain_icmp_ping (in README.md file)
 */
 
+// CTRL + ALT + Strzałka -> dodaj nowy kursor
+// CTRL + D -> dodaj kursor przy matchującym wzorcu
+// CTRL + R -> mądry znajdź i zamień (refactor)
+
 #define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <string.h>
@@ -35,19 +39,17 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <time.h>
 
 #define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
-#define IP_ADDRESS_SIZE 32
-#define SIXTEEN_BITES 16
-#define WHOLE_IP_HDR_TO_CALC_CHECKSUM 128
+#define BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP 16
 
 // Variables
 static int TTL = 1;
 static struct addrinfo hints = { 0 };
-static struct addrinfo *res;
-int binArray[IP_ADDRESS_SIZE] = { 0 }; 
-int IPHeaderBinVersion[WHOLE_IP_HDR_TO_CALC_CHECKSUM];
-int currentBit;
+static struct addrinfo *res; 
+
 struct IpHeader {
     unsigned int version : 4;
     unsigned int IHL : 4;
@@ -62,16 +64,19 @@ struct IpHeader {
     uint32_t SourceAddress;
     uint32_t DestinationAddress;
     char options[MAX_DATA_SIZE_IN_IP_HEADER];
-} ipHdr;
+} ipHeader;
+int ICMPBytes[BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP];
+int currentBit = 0;
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
 // CTRL + D -> dodaj kursor przy matchującym wzorcu
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
-// Function to convert decimal numbers into their binary representation
-void decimal_to_binary(number, size) {
-    int i, n = number;
-    memset(binArray, 0, IP_ADDRESS_SIZE); // Before we calculate binary representation, we have to fill whole array with 0's
+// Convert decimal numbers into their binary representation
+void decimal_to_binary(uint8_t number) {
+    int i, n = number, binArray[16];
+    memset(binArray, 0, sizeof(binArray)); // Before we calculate binary representation, we have to fill whole array with 0's
+>>>>>>> e647d4be3b3335d3ddf4657251fbed5ed22d24dc
     for (i = 0; n > 0; i++) {
         binArray[i] = n % 2;
         n = n / 2;
@@ -81,28 +86,39 @@ void decimal_to_binary(number, size) {
         IPHeaderBinVersion[currentBit] = binArray[i];
         currentBit++;
     }
+    for (int j = i - 1; j >= 0; j--) {
+        ICMPBytes[currentBit] = binArray[j];
+        currentBit++;
+    }
 }
 
-// Function to calculate checksum
-uint16_t calculate_checksum(ipHdr) { 
+// Calculate checksum in ICMP
+uint16_t calculate_icmp_checksum(uint8_t type, uint8_t code) {
     // 1. Change all numbers into binary representation
-    decimal_to_binary(ipHdr.version, 4);
-    // 2. COnnect them into 16 bits fileds
-
-    // 3. Create a table with 10 rows of 16 bits columns 
-
-    // 4. Sum bits in columns 
-
-    // 5. Cut additional bits, and add them at the start 
-
-    // 6. Revert 0 to 1 and 1 to 0 
-
-    // 7. Put the resault intp Header Ckecksum field in struct 
-
-   return(0);
+    decimal_to_binary(type);
+    decimal_to_binary(code);
+    // 2. Convert number into decimal
+    uint16_t decimalChecksum;
+    int power_of_2 = 0;
+    for (int j = 0; j <= 15; j++) {
+        decimalChecksum += ICMPBytes[j] * 2^(power_of_2);
+        power_of_2++;
+    }
+    // 3. Put the result into ICMP ckecksum field in struct 
+    return(decimalChecksum);
 }
 
-// Function to send ICMP Echo messages 
+// Returns if ICMP packet has reached its destination
+bool ICMP_time_exceeded() {
+    if () {
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+// Send ICMP Echo messages 
 void send_echo_mess(const char * hostname) { 
     // Destination IP address will be resolved with getaddrinfo() function
     struct addrinfo hint; 
@@ -110,17 +126,16 @@ void send_echo_mess(const char * hostname) {
     // We have to allocate proper amount of memory to our hint struct - we fill whole struct with 0's, and fill it with proper data
     memset(&hint, 0, sizeof(hint));
     hint.ai_family = AF_UNSPEC;
-    hint.ai_socktype = SOCK_STREAM;
+    hint.ai_socktype = SOCK_RAW;
+    hint.ai_protocol = IPPROTO_ICMP;
+    hints.ai_flags = AI_PASSIVE;
     // The rest of struct is 0
 
-    // Step 1. Create a RAW socket for specifying ICMP protocol
-    socket(AF_INET, SOCK_STREAM, IPPROTO_ICMP);
-
-    // Step 2. Resolve the hostname to an address if needed (DNS)
+    // Step 1. Resolve the hostname to an address if needed (DNS)
     int status = getaddrinfo(hostname, NULL, &hint, &result);
     if (status != 0) {
         printf("An error has occoured: %d\n", status);
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
 
     struct addrinfo *tmp = result;
@@ -136,25 +151,79 @@ void send_echo_mess(const char * hostname) {
     }
 
     inet_ntop(tmp->ai_family, addr, address_string, sizeof(address_string));
-
+    
     // If DNS reseolved hostname into an IP address then, we have to write it as a dst IP address in our struct
     if (address_string != NULL) {
         hint.ai_addr = address_string;
     }
 
-    // Step 3. Creatign an ICMP packet of type 8
+    // Step 2. Create a RAW socket for specifying ICMP protocol
+    int sockfd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (sockfd == -1) {
+        printf("SOCKET ERROR !! %d\n\r", sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    // Step 3. Creating an ICMP packet of type 8
     struct icmppkt {
     uint8_t type;
     uint8_t code;
     u_int16_t checksum;
-    u_int32_t data;
+    u_int16_t identifier;
     } icmppkt;
 
-    icmppkt.type = 0; // Echo reply
-    icmppkt.code = 0; // Code for echo replies 
-    // Before setting checksum array value we have to calcuate its value
-    calculate_checksum(ipHdr);
-    icmppkt.checksum = checkSumArr[SIXTEEN_BITES]; // Calculated checksum
+    icmppkt.type = 8; // Echo request
+    icmppkt.code = 0; // Code for echo requests 
+    icmppkt.checksum = calculate_icmp_checksum(icmppkt.type, icmppkt.code); // Calculated ckecksum
+    icmppkt.identifier = 100; // ICMP packet identifier
+    char * sendbuff = sizeof(icmppkt); // Buffer used to send message
+    char * recvbuff = sizeof(icmppkt); // Buffer used to read message
+
+    // 4.  Record the start time of traceroute
+    clock_t whole_time_start;
+    whole_time_start = clock();
+
+    // Loop that ends when package reaches its destination
+    while (ICMP_time_exceeded() == true) {
+        // 5.  Send out the packet 
+        int failedPackets = 0;
+        ssize_t answer; 
+        int sent_packet = sendto(sockfd, sendbuff, sizeof(sendbuff), 0, hint.ai_addr, sizeof(hint.ai_addr));
+        // If you haven't succeed with sending ICMP packets report an error, else wait for an answer 
+        if (sent_packet < 0) {
+            printf("SENDING ERROR !! %d\n\r", sent_packet);
+            exit(EXIT_FAILURE);
+        } 
+        else {
+            printf("Sent %d byte packet... ", bytes_sent);
+            // 5.1  Record the start time of single packet 
+            clock_t start;
+            start = clock();
+            // 5.2  Wait (listen) for a ICMP type 0 (Reply)
+            answer = recvfrom(sockfd, recvbuff, sizeof(recvbuff), 0, hint.ai_addr, sizeof(hint.ai_addr));
+            if (answer < 0) {
+                printf("REVIVING ERROR !! %d\n\r", answer);
+                exit(EXIT_FAILURE);
+            }
+            // 5.3  Check the Id byte to make sure it is a reply to our Echo packet
+            
+            // 5.4  If the Id byte is not a match, wait for another packet if the timeout was not reached yet
+
+            // 5.5  Record the end time
+            clock_t end;
+            end = clock();
+
+            // 5.6 Print results
+
+        }
+    } 
+    
+    // 7.  Record the end time
+    clock_t whole_time_end;
+    whole_time_end = clock();
+
+    // 8. Print the result
+    
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
 }
@@ -163,7 +232,7 @@ int main(int agrc, char *argv[]) {
     // const char * dstIPAdd = getIpAddresses();
     // printf("%s\n", dstIPAdd);
     const char * hostname = argv[1];
-    sendEchoMess(hostname);
+    send_echo_mess(hostname);
 
-    return 0;
+    return 0; 
 }

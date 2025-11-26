@@ -5,5 +5,7 @@
         "in.h": "c",
         "ip.h": "c",
         "netdb.h": "c"
-    }
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
 }
