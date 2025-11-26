@@ -29,6 +29,7 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 // CTRL + R -> mądry znajdź i zamień (refactor)
 
 #define _XOPEN_SOURCE 700
+#define __USE_MISC
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -42,30 +43,12 @@ I found these steps in the following link: https://github.com/janwilmans/explain
 #include <stdbool.h>
 #include <time.h>
 
-#define MAX_DATA_SIZE_IN_IP_HEADER 40 // In IP header data field can have maximum of 40 bytes  
-#define BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP 16
-
 // Variables
 static int TTL = 1;
-static struct addrinfo hints = { 0 };
-static struct addrinfo *res; 
-
-struct IpHeader {
-    unsigned int version : 4;
-    unsigned int IHL : 4;
-    uint8_t TOS;
-    uint16_t TotalLenght;
-    uint16_t Identification;
-    unsigned int Flags : 3;
-    unsigned int FragmentOffset : 13; 
-    uint8_t TTL;
-    uint8_t Protocol;
-    uint16_t HeaderChecksum;
-    uint32_t SourceAddress;
-    uint32_t DestinationAddress;
-    char options[MAX_DATA_SIZE_IN_IP_HEADER];
-} ipHeader;
-int ICMPBytes[BYTES_USED_TO_CALC_CHECKSUM_IN_ICMP];
+char sendBuff[400], recvBuff[400];
+struct iphdr ippkt;
+struct icmphdr icmppkt;
+int ICMPBytes[sizeof(ippkt.check)];
 int currentBit = 0;
 
 // CTRL + ALT + Strzałka -> dodaj nowy kursor
@@ -76,15 +59,10 @@ int currentBit = 0;
 void decimal_to_binary(uint8_t number) {
     int i, n = number, binArray[16];
     memset(binArray, 0, sizeof(binArray)); // Before we calculate binary representation, we have to fill whole array with 0's
->>>>>>> e647d4be3b3335d3ddf4657251fbed5ed22d24dc
     for (i = 0; n > 0; i++) {
         binArray[i] = n % 2;
         n = n / 2;
         i++;
-    }
-    for (i = size; i >= 0; i--) {
-        IPHeaderBinVersion[currentBit] = binArray[i];
-        currentBit++;
     }
     for (int j = i - 1; j >= 0; j--) {
         ICMPBytes[currentBit] = binArray[j];
@@ -108,6 +86,10 @@ uint16_t calculate_icmp_checksum(uint8_t type, uint8_t code) {
     return(decimalChecksum);
 }
 
+uint16_t calculate_iphdr_checksum() {
+
+}
+
 // Returns if ICMP packet has reached its destination
 bool ICMP_time_exceeded() {
     if () {
@@ -122,13 +104,13 @@ bool ICMP_time_exceeded() {
 void send_echo_mess(const char * hostname) { 
     // Destination IP address will be resolved with getaddrinfo() function
     struct addrinfo hint; 
-    struct addrinfo *result;
+    struct addrinfo *result; // Temporary struct for holding data
     // We have to allocate proper amount of memory to our hint struct - we fill whole struct with 0's, and fill it with proper data
     memset(&hint, 0, sizeof(hint));
     hint.ai_family = AF_UNSPEC;
     hint.ai_socktype = SOCK_RAW;
     hint.ai_protocol = IPPROTO_ICMP;
-    hints.ai_flags = AI_PASSIVE;
+    hint.ai_flags = AI_PASSIVE;
     // The rest of struct is 0
 
     // Step 1. Resolve the hostname to an address if needed (DNS)
@@ -164,13 +146,7 @@ void send_echo_mess(const char * hostname) {
         exit(EXIT_FAILURE);
     }
 
-    // Step 3. Creating an ICMP packet of type 8
-    struct icmppkt {
-    uint8_t type;
-    uint8_t code;
-    u_int16_t checksum;
-    u_int16_t identifier;
-    } icmppkt;
+    // Step 3. Creating an ICMP packet of type 8 
 
     icmppkt.type = 8; // Echo request
     icmppkt.code = 0; // Code for echo requests 
@@ -223,7 +199,7 @@ void send_echo_mess(const char * hostname) {
     whole_time_end = clock();
 
     // 8. Print the result
-    
+
     // At the end we have to clean up result struct info
     freeaddrinfo(result);
 }

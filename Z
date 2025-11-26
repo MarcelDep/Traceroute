@@ -1,0 +1,4 @@
+Dobra robimy tak:
+1. Tworzymy buffer do wysyłania danych o jakimś bezpiecznym rozimarze.
+2. Tworzymy pakiet IP który będzie miał uzupełnione dane, jego adres wskazuje na adres buffera tak, że zapisując do structa zapisujemy do buffera
+3. Tworzymy ICMP który uzupełniamy a jego adres wskazuje na adres ip z przesunięciem o 1 bajt, dzięki temu w send buffer dane będą zapisywane dokładnie po całym pakiecie ip
